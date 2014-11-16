@@ -2,10 +2,10 @@ package main
 
 import (
 	//"fmt"
-	"math/rand"
+	"sync"
 )
 
-func mergeSort(list []int) []int {
+func goMergeSort(list []int) []int {
 
 	if len(list) <= 1 {
 		return list
@@ -20,13 +20,28 @@ func mergeSort(list []int) []int {
 		half := len(list) / 2
 
 		// divide
-		a := mergeSort(list[0:half])
-		b := mergeSort(list[half:])
+		a := list[0:half]
+		b := list[half:]
 
+		var wait sync.WaitGroup
+
+		wait.Add(2)
+
+		go func() {
+			a = mergeSort(a)
+			wait.Done()
+		}()
+
+		go func() {
+			b = mergeSort(b)
+			wait.Done()
+		}()
+
+		wait.Wait()
+
+		// merge
 		buf := make([]int, len(list))
-
 		i, j := 0, 0
-
 		for i < len(a) && j < len(b) {
 			if a[i] < b[j] {
 				buf[i+j] = a[i]
@@ -48,9 +63,4 @@ func mergeSort(list []int) []int {
 		// conquer
 		return buf
 	}
-}
-
-func main() {
-	list := rand.Perm(10)
-	mergeSort(list)
 }
