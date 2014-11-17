@@ -4,22 +4,47 @@ import (
 	"fmt"
 	"math/rand"
 	"runtime"
+	"sort"
 	"time"
 )
 
 func main() {
-	runtime.GOMAXPROCS(10)
-	list := rand.Perm(9999999)
+
+	// fmt.Println(merge([]int{4, 5, 6, 7}, []int{1, 2, 3}))
 
 	start := time.Now()
-	mergeSort(list)
-	duration := time.Since(start)
+	cpu := 1 // runtime.NumCPU()
 
-	fmt.Println("normal: ", duration)
+	runtime.GOMAXPROCS(cpu)
 
-	start = time.Now()
-	goMergeSort(list)
-	duration = time.Since(start)
+	list := rand.Perm(1000000)
 
-	fmt.Println("parallel: ", duration)
+	partSize := len(list) / cpu
+	lists := make([][]int, cpu)
+
+	for i := range lists {
+		lists[i] = list[partSize*i : partSize*(i+1)]
+	}
+
+	c := make(chan []int)
+	for i := range lists {
+		go func(i int) {
+			sort.Ints(lists[i])
+			c <- lists[i]
+		}(i)
+	}
+
+	for {
+		a := <-c
+		if len(a) == len(list) {
+			// fmt.Println(a)
+			break
+		}
+		b := <-c
+		go func() {
+			c <- merge(a, b)
+		}()
+	}
+
+	fmt.Println(time.Since(start))
 }
